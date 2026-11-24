@@ -16,6 +16,7 @@ happy), and it fits lazy agents perfectly: the agent does no work at
 all, it just buys its way out of the awkward moment.
 """
 
+import hashlib
 import os
 
 PITCH = (
@@ -26,6 +27,11 @@ PITCH = (
 
 OUTPUT_PATH = "/output/entry.txt"
 MAX_CHARS = 200
+
+# Pinned digest of the exact bytes this program must write: the 196-char
+# pitch encoded as UTF-8 (196 bytes, pure ASCII).
+EXPECTED_SHA256 = "598e08f26ccfb25dcca4f1239dde400a35c2d3594159898dc87809f0a86b6a8d"
+EXPECTED_BYTES = 196
 
 
 def check_pitch(text: str) -> None:
@@ -42,13 +48,71 @@ def main() -> None:
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
     with open(OUTPUT_PATH, "w", encoding="utf-8", newline="") as f:
         f.write(PITCH)
-    # Read-back gate: what landed on disk must match the pitch exactly.
-    with open(OUTPUT_PATH, "r", encoding="utf-8", newline="") as f:
-        written = f.read()
-    if written != PITCH:
+    # Read-back gate: what landed on disk must match the pitch exactly —
+    # exact bytes, exact length (196), and the pinned sha256 digest.
+    with open(OUTPUT_PATH, "rb") as f:
+        raw = f.read()
+    if raw != PITCH.encode("utf-8"):
         raise SystemExit("read-back mismatch: output differs from the pitch")
-    check_pitch(written)
+    if len(raw) != EXPECTED_BYTES:
+        raise SystemExit(
+            f"read-back length: found {len(raw)} bytes, expected {EXPECTED_BYTES}"
+        )
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest != EXPECTED_SHA256:
+        raise SystemExit(
+            f"read-back sha256: found {digest}, expected {EXPECTED_SHA256}"
+        )
+    print(f"verified: {len(PITCH)} chars, sha256 {digest}")
 
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
